@@ -9,18 +9,21 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Terminal, RefreshCw } from "lucide-react";
 import { courses } from "@/lib/mock-data";
 import { useParams } from "next/navigation";
+import { useFacultyQrStore } from "@/store/faculty-qr-store";
 
 const SECRET_KEY = "your-super-secret-key-for-hashing";
 const REFRESH_INTERVAL = 60; // seconds
 
 export default function QrCodeGeneratorPage() {
-  const [qrData, setQrData] = useState<string | null>(null);
+  const { setQrDataForCourse, getQrDataForCourse } = useFacultyQrStore();
+  const params = useParams();
+  const courseId = params.id as string;
+  
+  const [qrData, setQrData] = useState<string | null>(getQrDataForCourse(courseId));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
 
-  const params = useParams();
-  const courseId = params.id as string;
   const course = courses.find(c => c.id === courseId);
   const pageTitle = course ? `QR for ${course.name}` : "Generate QR Code";
 
@@ -35,20 +38,21 @@ export default function QrCodeGeneratorPage() {
       };
       const result = await generateSecureQrCode(input);
       setQrData(result.qrCodeData);
+      setQrDataForCourse(courseId, result.qrCodeData);
       setCountdown(REFRESH_INTERVAL);
     } catch (e) {
       console.error(e);
       setError("Failed to generate QR code. Please try again.");
       setQrData(null);
+      setQrDataForCourse(courseId, null);
     } finally {
       setIsLoading(false);
     }
-  }, [courseId]);
+  }, [courseId, setQrDataForCourse]);
 
   useEffect(() => {
     generateCode();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId]); // Only run when courseId changes
+  }, [generateCode]);
 
   useEffect(() => {
     if (!isLoading && qrData) {

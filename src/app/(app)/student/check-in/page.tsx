@@ -19,9 +19,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { studentCourses } from '@/lib/mock-data';
 import { useAttendanceStore } from '@/store/attendance-store';
-import { Check, Loader2, QrCode, VideoOff, Camera } from 'lucide-react';
+import { Check, Loader2, QrCode, VideoOff } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useFacultyQrStore } from '@/store/faculty-qr-store';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function CheckInPage() {
   const [selectedCourse, setSelectedCourse] = useState<string | undefined>(undefined);
@@ -29,6 +30,7 @@ export default function CheckInPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
   const { checkIn } = useAttendanceStore();
+  const { getQrDataForCourse } = useFacultyQrStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
@@ -36,7 +38,7 @@ export default function CheckInPage() {
     const getCameraPermission = async () => {
       if (typeof window !== 'undefined' && navigator.mediaDevices) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
           setHasCameraPermission(true);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
@@ -86,6 +88,20 @@ export default function CheckInPage() {
     // Simulate scanning and API call
     setTimeout(() => {
       const mockStudentId = 's1'; 
+      const activeQrData = getQrDataForCourse(selectedCourse);
+
+      if (!activeQrData) {
+        setIsLoading(false);
+        toast({
+          title: 'Check-in Failed',
+          description: `No active QR code was found for this course. Please ask your professor to generate one.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // In a real app, you would decode the QR from the video stream and validate its data.
+      // Here, we just check if any active QR data exists for the course.
       checkIn(selectedCourse, mockStudentId);
       
       setIsLoading(false);
@@ -126,13 +142,15 @@ export default function CheckInPage() {
           <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
             <video ref={videoRef} className="h-full w-full object-cover" autoPlay muted playsInline />
             {hasCameraPermission === false && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 p-4 text-center">
-                    <VideoOff className="mb-2 h-10 w-10 text-white" />
-                    <p className="font-semibold text-white">Camera not available</p>
-                    <p className="text-sm text-muted-foreground text-gray-300">
-                        Please grant camera permissions in your browser settings.
-                    </p>
-                </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 p-4 text-center">
+                  <Alert variant="destructive" className="bg-transparent border-0 text-white">
+                      <VideoOff className="h-4 w-4" />
+                      <AlertTitle>Camera not available</AlertTitle>
+                      <AlertDescription className="text-gray-300">
+                          Please grant camera permissions to continue.
+                      </AlertDescription>
+                  </Alert>
+              </div>
             )}
              {hasCameraPermission === null && (
                 <div className="absolute inset-0 flex items-center justify-center">
