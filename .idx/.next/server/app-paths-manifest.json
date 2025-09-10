@@ -1,0 +1,10 @@
+{
+  "/(app)/faculty/course/[id]/attendance/page": "app/(app)/faculty/course/[id]/attendance/page.js",
+  "/(app)/faculty/course/[id]/qr/page": "app/(app)/faculty/course/[id]/qr/page.js",
+  "/(app)/faculty/dashboard/page": "app/(app)/faculty/dashboard/page.js",
+  "/(app)/student/check-in/page": "app/(app)/student/check-in/page.js",
+  "/(app)/student/dashboard/page": "app/(app)/student/dashboard/page.js",
+  "/(auth)/faculty/login/page": "app/(auth)/faculty/login/page.js",
+  "/(auth)/student/login/page": "app/(auth)/student/login/page.js",
+  "/page": "app/page.js"
+}

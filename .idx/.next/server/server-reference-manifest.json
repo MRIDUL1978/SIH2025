@@ -1,0 +1,17 @@
+{
+  "node": {
+    "402651b5d426263bdefd477ab3482a04da8dd88cbd": {
+      "workers": {
+        "app/(app)/faculty/course/[id]/qr/page": {
+          "moduleId": "[project]/.next-internal/server/app/(app)/faculty/course/[id]/qr/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/ai/flows/secure-qr-code-generation.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/(app)/faculty/course/[id]/qr/page": "action-browser"
+      }
+    }
+  },
+  "edge": {},
+  "encryptionKey": "Ksozqm0BIvBl6/oQRdJKLrYJSJN789HpO0HhgRKHkW4="
+}
