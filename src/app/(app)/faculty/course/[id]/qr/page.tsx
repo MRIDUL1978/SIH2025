@@ -47,7 +47,8 @@ export default function QrCodeGeneratorPage() {
 
   useEffect(() => {
     generateCode();
-  }, [generateCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId]); // Only run when courseId changes
 
   useEffect(() => {
     if (!isLoading && qrData) {
