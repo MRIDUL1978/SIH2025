@@ -19,8 +19,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { studentCourses } from '@/lib/mock-data';
 import { useAttendanceStore } from '@/store/attendance-store';
-import { Check, Loader2, QrCode } from 'lucide-react';
-import { useState } from 'react';
+import { Check, Loader2, QrCode, VideoOff, Camera } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function CheckInPage() {
   const [selectedCourse, setSelectedCourse] = useState<string | undefined>(undefined);
@@ -28,6 +29,46 @@ export default function CheckInPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
   const { checkIn } = useAttendanceStore();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      if (typeof window !== 'undefined' && navigator.mediaDevices) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings.',
+          });
+        }
+      } else {
+        setHasCameraPermission(false);
+        toast({
+            variant: 'destructive',
+            title: 'Camera Not Supported',
+            description: 'Your browser does not support camera access.',
+          });
+      }
+    };
+
+    getCameraPermission();
+
+    return () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
+    }
+  }, [toast]);
 
   const handleScan = () => {
     if (!selectedCourse) {
@@ -44,8 +85,6 @@ export default function CheckInPage() {
 
     // Simulate scanning and API call
     setTimeout(() => {
-      // In a real app, the QR code would contain the course ID.
-      // Here we use the selected course and a mock student ID.
       const mockStudentId = 's1'; 
       checkIn(selectedCourse, mockStudentId);
       
@@ -67,7 +106,7 @@ export default function CheckInPage() {
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Attendance Check-In</CardTitle>
           <CardDescription>
-            Select your course and scan the QR code to mark your attendance.
+            Select your course, point your camera at the QR code, and scan.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -83,9 +122,28 @@ export default function CheckInPage() {
               ))}
             </SelectContent>
           </Select>
+
+          <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
+            <video ref={videoRef} className="h-full w-full object-cover" autoPlay muted playsInline />
+            {hasCameraPermission === false && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 p-4 text-center">
+                    <VideoOff className="mb-2 h-10 w-10 text-white" />
+                    <p className="font-semibold text-white">Camera not available</p>
+                    <p className="text-sm text-muted-foreground text-gray-300">
+                        Please grant camera permissions in your browser settings.
+                    </p>
+                </div>
+            )}
+             {hasCameraPermission === null && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+            )}
+          </div>
+
         </CardContent>
         <CardFooter>
-          <Button onClick={handleScan} className="w-full" size="lg" disabled={isLoading || isSuccess}>
+          <Button onClick={handleScan} className="w-full" size="lg" disabled={isLoading || isSuccess || !hasCameraPermission}>
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : isSuccess ? (
@@ -93,7 +151,7 @@ export default function CheckInPage() {
             ) : (
               <QrCode className="mr-2 h-4 w-4" />
             )}
-            {isLoading ? 'Scanning...' : isSuccess ? 'Checked In!' : 'Simulate QR Scan'}
+            {isLoading ? 'Checking In...' : isSuccess ? 'Checked In!' : 'Simulate QR Scan'}
           </Button>
         </CardFooter>
       </Card>
