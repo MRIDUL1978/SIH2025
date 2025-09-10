@@ -14,9 +14,6 @@ import {
   LayoutDashboard,
   QrCode,
   BarChart3,
-  BookUser,
-  UserCog,
-  ShieldCheck,
   LogOut,
   Settings,
 } from 'lucide-react';

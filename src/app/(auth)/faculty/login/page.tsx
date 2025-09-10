@@ -1,5 +1,7 @@
+
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,16 +13,38 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserCog } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/firebase/auth";
+import { auth } from "@/lib/firebase/config";
+import { Loader2, UserCog } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function FacultyLoginPage() {
   const router = useRouter();
+  const { signIn } = useAuth();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("faculty@school.edu");
+  const [password, setPassword] = useState("password");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/faculty/dashboard");
+    setIsLoading(true);
+    try {
+      await signIn(auth, email, password);
+      toast({ title: "Login Successful" });
+      router.push("/faculty/dashboard");
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,15 +64,18 @@ export default function FacultyLoginPage() {
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="faculty@school.edu" required defaultValue="faculty@school.edu" />
+            <Input id="email" type="email" placeholder="faculty@school.edu" required value={email} onChange={e => setEmail(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required defaultValue="password" />
+            <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <Button type="submit" className="w-full">Sign in</Button>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Sign in
+          </Button>
            <p className="text-xs text-center text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link href="/faculty/register" className="underline hover:text-primary">
