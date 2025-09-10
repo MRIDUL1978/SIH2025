@@ -30,13 +30,7 @@ export async function generateSecureQrCode(input: SecureQrCodeInput): Promise<Se
   return secureQrCodeFlow(input);
 }
 
-const hashQrCodeData = ai.defineTool({
-  name: 'hashQrCodeData',
-  description: 'Hashes the QR code data using SHA256 with a timestamp and secret key for security.',
-  inputSchema: SecureQrCodeInputSchema,
-  outputSchema: z.string(),
-},
-async (input) => {
+const hashQrCodeData = (input: SecureQrCodeInput): string => {
   const {
     courseId,
     timestamp,
@@ -45,27 +39,8 @@ async (input) => {
 
   const dataToHash = `${courseId}-${timestamp}-${secretKey}`;
   const hashedData = crypto.createHash('sha256').update(dataToHash).digest('hex');
-  return hashedData;
-});
-
-const qrCodePrompt = ai.definePrompt({
-  name: 'qrCodePrompt',
-  tools: [hashQrCodeData],
-  input: {schema: SecureQrCodeInputSchema},
-  output: {schema: SecureQrCodeOutputSchema},
-  prompt: `You are tasked with generating secure QR code data for course attendance.
-
-  Use the hashQrCodeData tool to generate a secure hash based on the course ID, timestamp, and secret key.
-  The current timestamp is: {{{timestamp}}}.
-
-  The course ID is: {{{courseId}}}.
-
-  The secret key is: {{{secretKey}}}.
-
-  The hashed data from the hashQrCodeData tool call should be returned as the qrCodeData.
-  Ensure the output is a string.
-  `,
-});
+  return `attendease://${courseId}/${timestamp}/${hashedData}`;
+}
 
 const secureQrCodeFlow = ai.defineFlow(
   {
@@ -74,7 +49,7 @@ const secureQrCodeFlow = ai.defineFlow(
     outputSchema: SecureQrCodeOutputSchema,
   },
   async input => {
-    const {output} = await qrCodePrompt(input);
-    return output!;
+    const qrCodeData = hashQrCodeData(input);
+    return { qrCodeData };
   }
 );
