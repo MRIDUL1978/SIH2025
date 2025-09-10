@@ -11,58 +11,53 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BookUser } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function StudentLoginPage() {
+export default function AdminRegisterPage() {
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/student/dashboard");
+    router.push("/admin/dashboard");
   };
 
   return (
     <Card className="w-full max-w-sm">
-      <form onSubmit={handleLogin}>
+      <form onSubmit={handleRegister}>
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
             <div className="p-3 bg-primary/10 rounded-full">
-              <BookUser className="w-10 h-10 text-primary" />
+              <ShieldCheck className="w-10 h-10 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-headline">Student Login</CardTitle>
+          <CardTitle className="text-2xl font-headline">Admin Registration</CardTitle>
           <CardDescription>
-            Enter your credentials to access your dashboard.
+            Create an administrator account.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input id="name" type="text" placeholder="Admin User" required />
+          </div>
+          <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="student@school.edu" required defaultValue="student@school.edu" />
+            <Input id="email" type="email" placeholder="admin@school.edu" required />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required defaultValue="password" />
+            <Input id="password" type="password" required />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <Button type="submit" className="w-full">Sign in</Button>
+          <Button type="submit" className="w-full">Create Account</Button>
            <p className="text-xs text-center text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/student/register" className="underline hover:text-primary">
-              Register
-            </Link>
-          </p>
-          <p className="text-xs text-center text-muted-foreground">
-            Not a student? Log in as{" "}
-            <Link href="/faculty/login" className="underline hover:text-primary">
-              Faculty
-            </Link> or{" "}
+            Already have an account?{" "}
             <Link href="/admin/login" className="underline hover:text-primary">
-              Admin
-            </Link>.
+              Sign in
+            </Link>
           </p>
         </CardFooter>
       </form>

@@ -50,6 +50,12 @@ export default function AdminLoginPage() {
         <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full">Sign in</Button>
           <p className="text-xs text-center text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link href="/admin/register" className="underline hover:text-primary">
+              Register
+            </Link>
+          </p>
+          <p className="text-xs text-center text-muted-foreground">
             Not an admin? Log in as{" "}
             <Link href="/student/login" className="underline hover:text-primary">
               Student

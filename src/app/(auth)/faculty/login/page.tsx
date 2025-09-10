@@ -50,6 +50,12 @@ export default function FacultyLoginPage() {
         <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full">Sign in</Button>
            <p className="text-xs text-center text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link href="/faculty/register" className="underline hover:text-primary">
+              Register
+            </Link>
+          </p>
+           <p className="text-xs text-center text-muted-foreground">
             Not a faculty member? Log in as{" "}
             <Link href="/student/login" className="underline hover:text-primary">
               Student
