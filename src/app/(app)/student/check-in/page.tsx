@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -42,9 +43,9 @@ export default function CheckInPage() {
   useEffect(() => {
     if (!user) return;
     const fetchCourses = async () => {
-      const q = query(collection(db, 'courses'), where('studentIds', 'array-contains', user.uid));
-      const querySnapshot = await getDocs(q);
-      const coursesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+      // Fetch all courses, as all students are enrolled in all courses
+      const coursesSnapshot = await getDocs(collection(db, "courses"));
+      const coursesData = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
       setStudentCourses(coursesData);
     };
     fetchCourses();
