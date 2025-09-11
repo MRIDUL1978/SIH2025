@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,31 +18,38 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { QrCode, Users } from 'lucide-react';
+import { QrCode, Users, Terminal } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/firebase/auth';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import type { Course } from '@/store/attendance-store';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function FacultyDashboard() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+        setLoading(false);
+        return;
+    };
 
     const fetchCourses = async () => {
       try {
         setLoading(true);
+        setError(null);
         const q = query(collection(db, 'courses'), where('facultyId', '==', user.uid));
         const querySnapshot = await getDocs(q);
         const facultyCourses = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
         setCourses(facultyCourses);
-      } catch (error) {
-        console.error("Error fetching faculty courses: ", error);
+      } catch (err: any) {
+        console.error("Error fetching faculty courses: ", err);
+        setError("Could not fetch your courses. This might be a permissions issue. The required Firestore index may be missing.");
       } finally {
         setLoading(false);
       }
@@ -61,6 +69,13 @@ export default function FacultyDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+             <Alert variant="destructive" className="mb-4">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <Table>
             <TableHeader>
               <TableRow>

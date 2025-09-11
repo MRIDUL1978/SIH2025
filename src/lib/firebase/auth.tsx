@@ -8,6 +8,7 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut as firebaseSignOut,
+  updateProfile,
   Auth
 } from 'firebase/auth';
 import { auth, db } from './config';
@@ -55,7 +56,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Create a document in Firestore for the new user
+    // This adds the user's name to their auth profile
+    await updateProfile(user, { displayName: name });
+    
+    // This creates the user's profile document in Firestore.
+    // This is the ONLY write operation that happens for a new user.
+    // This action is allowed by the security rule `allow create: if request.auth.uid == userId;`
     await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
       name: name,

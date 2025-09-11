@@ -14,11 +14,9 @@ import {
   LayoutDashboard,
   QrCode,
   BarChart3,
-  BookUser,
-  UserCog,
-  ShieldCheck,
   LogOut,
   Settings,
+  BookCopy,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -36,6 +34,7 @@ const facultyNav = [
 
 const adminNav = [
   { href: '/admin/dashboard', icon: BarChart3, label: 'Analytics' },
+  { href: '/admin/courses', icon: BookCopy, label: 'Manage Courses' },
 ];
 
 export function AppSidebar() {

@@ -1,0 +1,36 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if a user has a specific role
+    function isRole(role) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Any authenticated user can create their own user document.
+      allow create: if request.auth.uid == userId;
+      
+      // Users can read their own document. Admins can read any user document.
+      allow read: if request.auth.uid == userId || isRole('admin');
+      
+      // Users can update their own document.
+      allow update: if request.auth.uid == userId;
+      
+      // No user should be able to delete their account record from firestore directly.
+      allow delete: if false;
+    }
+    
+    // Rules for the 'courses' collection
+    match /courses/{courseId} {
+        // Any authenticated user can read the course list.
+        allow read: if request.auth != null;
+        
+        // Only admins can create, update, or delete courses.
+        allow write: if isRole('admin');
+    }
+  }
+}

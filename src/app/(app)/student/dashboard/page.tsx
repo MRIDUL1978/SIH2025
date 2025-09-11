@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,7 +22,7 @@ import { useAttendanceStore } from '@/store/attendance-store';
 import { CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/lib/firebase/auth';
 import { db } from '@/lib/firebase/config';
-import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { getDocs, collection } from 'firebase/firestore';
 import type { Course } from '@/store/attendance-store';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -32,29 +33,32 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+        setLoading(false);
+        return;
+    };
 
-    const fetchCourses = async () => {
+    const fetchStudentData = async () => {
       try {
         setLoading(true);
-        // Fetch courses where the student's UID is in the 'students' array
-        const q = query(collection(db, 'courses'), where('studentIds', 'array-contains', user.uid));
-        const querySnapshot = await getDocs(q);
-        const studentCourses = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+        // Since all students are enrolled in all courses, we just fetch all courses.
+        const coursesSnapshot = await getDocs(collection(db, "courses"));
+        const studentCourses = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
         setCourses(studentCourses);
       } catch (error) {
         console.error("Error fetching student courses: ", error);
+        setCourses([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCourses();
+    fetchStudentData();
   }, [user]);
 
-  // Using a mock student ID for demonstration - this will need to be updated
-  const mockStudentId = 's1'; 
-  const { attended, total, percentage } = getStudentAttendanceStats(mockStudentId);
+  const { attended, total, percentage } = user 
+    ? getStudentAttendanceStats(user.uid)
+    : { attended: 0, total: 0, percentage: 0 };
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
