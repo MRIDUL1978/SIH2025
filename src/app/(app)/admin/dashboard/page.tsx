@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -10,17 +11,45 @@ import {
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Pie, PieChart, Cell } from 'recharts';
 import { useAttendanceStore } from '@/store/attendance-store';
 import { TrendingUp, Users } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const COLORS = ['#6666FF', '#40E0D0', '#FFC107', '#FF6B6B', '#9C27B0'];
 
+type OverallStats = {
+    courseId: string;
+    courseName: string;
+    code: string;
+    attendanceRate: number;
+};
+
+type InstitutionStats = {
+    totalStudents: number;
+    averageAttendance: number;
+};
+
 export default function AdminDashboard() {
   const { getOverallAttendanceStats, getInstitutionWideStats } = useAttendanceStore();
-  const overallStats = getOverallAttendanceStats();
-  const { totalStudents, averageAttendance } = getInstitutionWideStats();
+  const [overallStats, setOverallStats] = useState<OverallStats[]>([]);
+  const [institutionStats, setInstitutionStats] = useState<InstitutionStats>({ totalStudents: 0, averageAttendance: 0 });
+  const [loading, setLoading] = useState(true);
   
+  useEffect(() => {
+    const fetchStats = async () => {
+        setLoading(true);
+        const [overall, institution] = await Promise.all([
+            getOverallAttendanceStats(),
+            getInstitutionWideStats()
+        ]);
+        setOverallStats(overall);
+        setInstitutionStats(institution);
+        setLoading(false);
+    };
+    fetchStats();
+  }, [getOverallAttendanceStats, getInstitutionWideStats]);
+
   const pieChartData = [
-    { name: 'Average Attendance', value: averageAttendance },
-    { name: 'Average Absence', value: 100 - averageAttendance },
+    { name: 'Average Attendance', value: institutionStats.averageAttendance },
+    { name: 'Average Absence', value: 100 - institutionStats.averageAttendance },
   ];
 
   return (
@@ -35,7 +64,7 @@ export default function AdminDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{averageAttendance}%</div>
+            {loading ? <Skeleton className="h-8 w-1/4 mt-1" /> : <div className="text-2xl font-bold">{institutionStats.averageAttendance}%</div>}
             <p className="text-xs text-muted-foreground">
               Average across all courses
             </p>
@@ -47,7 +76,7 @@ export default function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalStudents}</div>
+             {loading ? <Skeleton className="h-8 w-1/4 mt-1" /> : <div className="text-2xl font-bold">{institutionStats.totalStudents}</div>}
             <p className="text-xs text-muted-foreground">
               Total enrolled students
             </p>
@@ -60,6 +89,7 @@ export default function AdminDashboard() {
             <CardTitle className="font-headline">Attendance Rate by Course</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
+            {loading ? <Skeleton className="h-[350px]" /> : (
             <ResponsiveContainer width="100%" height={350}>
               <BarChart data={overallStats}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -88,6 +118,7 @@ export default function AdminDashboard() {
                 <Bar dataKey="attendanceRate" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card className="col-span-4 lg:col-span-3">
@@ -98,6 +129,7 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+             {loading ? <Skeleton className="h-[350px]" /> : (
              <ResponsiveContainer width="100%" height={350}>
                 <PieChart>
                     <Tooltip
@@ -114,6 +146,7 @@ export default function AdminDashboard() {
                     </Pie>
                 </PieChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

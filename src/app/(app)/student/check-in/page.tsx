@@ -17,14 +17,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { studentCourses } from '@/lib/mock-data';
 import { useAttendanceStore } from '@/store/attendance-store';
 import { Check, Loader2, QrCode, VideoOff } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useFacultyQrStore } from '@/store/faculty-qr-store';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/lib/firebase/auth';
+import { db } from '@/lib/firebase/config';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import type { Course } from '@/store/attendance-store';
 
 export default function CheckInPage() {
+  const { user } = useAuth();
+  const [studentCourses, setStudentCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -33,6 +38,17 @@ export default function CheckInPage() {
   const { getQrDataForCourse } = useFacultyQrStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCourses = async () => {
+      const q = query(collection(db, 'courses'), where('studentIds', 'array-contains', user.uid));
+      const querySnapshot = await getDocs(q);
+      const coursesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+      setStudentCourses(coursesData);
+    };
+    fetchCourses();
+  }, [user]);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -82,12 +98,21 @@ export default function CheckInPage() {
       return;
     }
     
+    if (!user) {
+        toast({
+          title: 'Error',
+          description: 'You must be logged in to check in.',
+          variant: 'destructive',
+        });
+        return;
+    }
+
     setIsLoading(true);
     setIsSuccess(false);
 
     // Simulate scanning and API call
     setTimeout(() => {
-      const mockStudentId = 's1'; 
+      const studentId = user.uid; 
       const activeQrData = getQrDataForCourse(selectedCourse);
 
       if (!activeQrData) {
@@ -102,7 +127,7 @@ export default function CheckInPage() {
       
       // In a real app, you would decode the QR from the video stream and validate its data.
       // Here, we just check if any active QR data exists for the course.
-      checkIn(selectedCourse, mockStudentId);
+      checkIn(selectedCourse, studentId);
       
       setIsLoading(false);
       setIsSuccess(true);
