@@ -19,18 +19,23 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAttendanceStore } from '@/store/attendance-store';
-import { CheckCircle, Clock } from 'lucide-react';
+import { CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/lib/firebase/auth';
 import { db } from '@/lib/firebase/config';
 import { getDocs, collection } from 'firebase/firestore';
-import type { Course } from '@/store/attendance-store';
+import type { Course, AttendanceRecord } from '@/store/attendance-store';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
+import { CourseAttendanceDetails } from '@/components/course-attendance-details';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const { getStudentAttendanceStats } = useAttendanceStore();
+  const { getStudentAttendanceStats, getLatestAttendanceForStudent, getAttendanceHistoryForStudent, initializeRoster } = useAttendanceStore();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openCourseId, setOpenCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -41,10 +46,14 @@ export default function StudentDashboard() {
     const fetchStudentData = async () => {
       try {
         setLoading(true);
-        // Since all students are enrolled in all courses, we just fetch all courses.
         const coursesSnapshot = await getDocs(collection(db, "courses"));
         const studentCourses = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
         setCourses(studentCourses);
+        
+        for (const course of studentCourses) {
+          await initializeRoster(course.id);
+        }
+
       } catch (error) {
         console.error("Error fetching student courses: ", error);
         setCourses([]);
@@ -54,7 +63,7 @@ export default function StudentDashboard() {
     };
 
     fetchStudentData();
-  }, [user]);
+  }, [user, initializeRoster]);
 
   const { attended, total, percentage } = user 
     ? getStudentAttendanceStats(user.uid)
@@ -73,7 +82,7 @@ export default function StudentDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{percentage}%</div>
             <p className="text-xs text-muted-foreground">
-              {attended} of {total} classes attended
+              {attended} of {total} sessions attended
             </p>
             <Progress value={percentage} className="mt-4 h-2" />
           </CardContent>
@@ -102,7 +111,7 @@ export default function StudentDashboard() {
           <CardHeader>
             <CardTitle className="font-headline">My Courses</CardTitle>
             <CardDescription>
-              Your enrolled courses for the current semester.
+              Your enrolled courses and their attendance status. Click a course to see your attendance history.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -112,6 +121,9 @@ export default function StudentDashboard() {
                   <TableHead>Course Code</TableHead>
                   <TableHead>Course Name</TableHead>
                   <TableHead>Faculty</TableHead>
+                  <TableHead>Last Status</TableHead>
+                  <TableHead>Last Check-in</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -121,19 +133,53 @@ export default function StudentDashboard() {
                       <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                     </TableRow>
                   ))
                 ) : courses.length > 0 ? (
-                  courses.map(course => (
-                    <TableRow key={course.id}>
-                      <TableCell className="font-medium">{course.code}</TableCell>
-                      <TableCell>{course.name}</TableCell>
-                      <TableCell>{course.facultyName}</TableCell>
-                    </TableRow>
-                  ))
+                  courses.map(course => {
+                    const latestRecord = user ? getLatestAttendanceForStudent(course.id, user.uid) : undefined;
+                    const history = user ? getAttendanceHistoryForStudent(course.id, user.uid) : [];
+                    const isOpen = openCourseId === course.id;
+
+                    return (
+                      <Collapsible asChild key={course.id} onOpenChange={() => setOpenCourseId(isOpen ? null : course.id)}>
+                        <>
+                          <TableRow className="cursor-pointer">
+                            <TableCell className="font-medium">{course.code}</TableCell>
+                            <TableCell>{course.name}</TableCell>
+                            <TableCell>{course.facultyName}</TableCell>
+                            <TableCell>{latestRecord?.status || 'Absent'}</TableCell>
+                            <TableCell>
+                              {latestRecord?.timestamp 
+                                ? format(new Date(latestRecord.timestamp), 'MMM dd, yyyy HH:mm') 
+                                : 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                  <span className="sr-only">Toggle details</span>
+                                </Button>
+                              </CollapsibleTrigger>
+                            </TableCell>
+                          </TableRow>
+                          <CollapsibleContent asChild>
+                            <tr>
+                              <td colSpan={6}>
+                                <CourseAttendanceDetails records={history} />
+                              </td>
+                            </tr>
+                          </CollapsibleContent>
+                        </>
+                      </Collapsible>
+                    );
+                  })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center">You are not enrolled in any courses.</TableCell>
+                    <TableCell colSpan={6} className="text-center">You are not enrolled in any courses.</TableCell>
                   </TableRow>
                 )}
               </TableBody>

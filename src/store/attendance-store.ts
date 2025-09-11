@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db } from '@/lib/firebase/config';
-import { getDoc, doc, collection, getDocs } from 'firebase/firestore';
+import { getDoc, doc, collection, getDocs, updateDoc } from 'firebase/firestore';
 
 export type Student = {
   id: string; // This is the user's UID from Firebase Auth
@@ -100,6 +100,8 @@ const fetchAllStudents = async (): Promise<Student[]> => {
 type AttendanceState = {
   attendance: Record<string, AttendanceRecord[]>; // courseId -> records
   getAttendanceForCourse: (courseId: string) => { student: Student; record?: AttendanceRecord }[];
+  getAttendanceHistoryForStudent: (courseId: string, studentId: string) => AttendanceRecord[];
+  getLatestAttendanceForStudent: (courseId: string, studentId: string) => AttendanceRecord | undefined;
   initializeRoster: (courseId: string) => Promise<void>;
   checkIn: (courseId: string, studentId: string) => void;
   getStudentAttendanceStats: (studentId: string) => { attended: number; total: number; percentage: number };
@@ -114,66 +116,79 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     const course = await fetchCourse(courseId);
     if (!course) return;
 
-    // Initialize roster only if it doesn't exist
-    if (!get().attendance[courseId]) {
-      const roster = await Promise.all(course.studentIds.map(async (studentId) => {
-        const student = await fetchStudent(studentId);
-        return { studentId, status: 'Absent' as AttendanceStatus, student };
-      }));
-      
-      set(state => ({
-        attendance: {
-          ...state.attendance,
-          [courseId]: roster.map(r => ({studentId: r.studentId, status: r.status}))
-        }
-      }));
-    }
+    // Ensure all students for the course are cached
+    await Promise.all(course.studentIds.map(studentId => fetchStudent(studentId)));
+
+    // Initialize with an 'Absent' status only if no records exist for that student for today.
+    // This part is complex with history. We will simplify: the absence is implicit.
+    // The main job here is to ensure student data is loaded.
   },
 
-  getAttendanceForCourse: (courseId: string) => {
-    const courseAttendance = get().attendance[courseId] || [];
-    
-    return courseAttendance.map(record => {
-      // Assuming student data is cached by initializeRoster
-      const student = studentCache.get(record.studentId)!;
-      return { student, record };
-    }).filter(item => item.student); // Filter out cases where student might not be found
+  getAttendanceForCourse: (courseId:string) => {
+    const course = courseCache.get(courseId);
+    if (!course) return [];
+
+    // This function will now return the latest status for each student on the roster.
+    return course.studentIds.map(studentId => {
+        const student = studentCache.get(studentId)!;
+        const record = get().getLatestAttendanceForStudent(courseId, studentId);
+        return { student, record };
+    }).filter(item => item.student);
+  },
+
+  getAttendanceHistoryForStudent: (courseId: string, studentId: string) => {
+    const courseRecords = get().attendance[courseId] || [];
+    return courseRecords.filter(r => r.studentId === studentId);
+  },
+
+  getLatestAttendanceForStudent: (courseId: string, studentId: string) => {
+    const history = get().getAttendanceHistoryForStudent(courseId, studentId);
+    if (history.length === 0) return undefined;
+    return history.sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0))[0];
   },
 
   checkIn: (courseId: string, studentId: string) => {
     set(state => {
-      const courseAttendance = state.attendance[courseId];
-      if (!courseAttendance) return state;
-
-      const studentIndex = courseAttendance.findIndex(r => r.studentId === studentId);
-
-      if (studentIndex > -1) {
-        const updatedAttendance = [...courseAttendance];
-        updatedAttendance[studentIndex] = { ...updatedAttendance[studentIndex], status: 'Present', timestamp: new Date() };
-        return {
-          attendance: {
-            ...state.attendance,
-            [courseId]: updatedAttendance,
-          },
-        };
+      const courseAttendance = state.attendance[courseId] || [];
+      const newRecord: AttendanceRecord = { 
+        studentId, 
+        status: 'Present', 
+        timestamp: new Date() 
+      };
+      
+      const updatedAttendance = [...courseAttendance, newRecord];
+      
+      const course = courseCache.get(courseId);
+      if (course && !course.studentIds.includes(studentId)) {
+        const courseRef = doc(db, 'courses', courseId);
+        const newStudentIds = [...course.studentIds, studentId];
+        updateDoc(courseRef, { studentIds: newStudentIds });
+        course.studentIds = newStudentIds;
+        courseCache.set(courseId, course);
       }
-      return state;
+      
+      return {
+        attendance: {
+          ...state.attendance,
+          [courseId]: updatedAttendance,
+        },
+      };
     });
   },
 
   getStudentAttendanceStats: (studentId: string) => {
-    // This is now simplified as we don't have global mock data.
-    // A more robust implementation would query Firestore across all of a student's courses.
-    // For now, it will only reflect stats for courses whose rosters have been initialized.
     const { attendance } = get();
     let attended = 0;
     let total = 0;
-    
-    Object.keys(attendance).forEach(courseId => {
-        const record = attendance[courseId].find(r => r.studentId === studentId);
-        if(record){
+
+    // This calculation should be based on number of sessions, which we don't explicitly track.
+    // Let's calculate based on present records vs total records for the student.
+    Object.values(attendance).flat().forEach(record => {
+        if (record.studentId === studentId) {
             total++;
-            if(record.status === 'Present') attended++;
+            if (record.status === 'Present') {
+                attended++;
+            }
         }
     });
 
@@ -186,8 +201,9 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     const { attendance } = get();
     return courses.map(course => {
       const records = attendance[course.id] || [];
-      const total = course.studentIds.length;
       const present = records.filter(r => r.status === 'Present').length;
+      // Total should be based on sessions, but for a simple stat, we use total records.
+      const total = records.length;
       const attendanceRate = total > 0 ? Math.round((present / total) * 100) : 0;
       return {
         courseId: course.id,
