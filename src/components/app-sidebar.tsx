@@ -22,6 +22,8 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useAuth } from '@/lib/firebase/auth';
+import { useTheme } from '@/lib/theme-provider';
+import { MoonIcon, SunIcon } from 'lucide-react';
 
 const studentNav = [
   { href: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -40,6 +42,7 @@ const adminNav = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const role = pathname.split('/')[1] || 'student';
 
   let navItems, roleName, userName, avatarUrl;
@@ -99,26 +102,41 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="mt-auto">
-        {user && (
-          <>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <Link href="#">
-                  <SidebarMenuButton tooltip={{ children: 'Settings', side: 'right' }}>
-                    <Settings className="shrink-0" />
-                    <span className="group-data-[collapsible=icon]:hidden">
-                      Settings
-                    </span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={signOut} tooltip={{ children: "Logout", side: 'right' }}>
-                    <LogOut className="shrink-0" />
-                    <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+              {user && (
+                <>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={toggleTheme}
+                        tooltip={{ children: 'Toggle Theme', side: 'right' }}
+                      >
+                        {theme === "light" ? (
+                          <MoonIcon className="shrink-0" />
+                        ) : (
+                          <SunIcon className="shrink-0" />
+                        )}
+                        <span className="group-data-[collapsible=icon]:hidden">
+                          Toggle Theme
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Link href="#">
+                        <SidebarMenuButton tooltip={{ children: 'Settings', side: 'right' }}>
+                          <Settings className="shrink-0" />
+                          <span className="group-data-[collapsible=icon]:hidden">
+                            Settings
+                          </span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton onClick={signOut} tooltip={{ children: "Logout", side: 'right' }}>
+                          <LogOut className="shrink-0" />
+                          <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
             <div className="p-2">
                 <div className="h-px w-full bg-border" />
             </div>

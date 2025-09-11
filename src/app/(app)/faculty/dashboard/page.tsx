@@ -71,7 +71,7 @@ export default function FacultyDashboard() {
         <CardContent>
           {error && (
              <Alert variant="destructive" className="mb-4">
-              <Terminal className="h-4 w-4" />
+              <Terminal className="h-4 w-4 text-muted-foreground dark:text-muted-foreground/80" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>

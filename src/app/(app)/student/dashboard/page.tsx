@@ -68,7 +68,7 @@ export default function StudentDashboard() {
             <CardTitle className="text-sm font-medium">
               Overall Attendance
             </CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle className="h-4 w-4 text-muted-foreground dark:text-muted-foreground/80" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{percentage}%</div>
@@ -83,7 +83,7 @@ export default function StudentDashboard() {
             <CardTitle className="text-sm font-medium">
               Courses Enrolled
             </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-muted-foreground dark:text-muted-foreground/80" />
           </CardHeader>
           <CardContent>
             {loading ? (

@@ -21,7 +21,8 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/lib/firebase/auth';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { useTheme } from '@/lib/theme-provider';
+import { MoonIcon, SunIcon } from 'lucide-react';
 
 type NavItem = {
   href: string;
@@ -47,6 +48,7 @@ const adminNav: NavItem[] = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const role = pathname.split('/')[1] || 'student';
 
   let navItems: NavItem[] = [];
@@ -121,12 +123,19 @@ export function AppSidebar() {
           <>
             <SidebarMenu>
               <SidebarMenuItem>
-                <div className="flex items-center justify-center p-2">
-                  <ThemeToggle />
-                  <span className="ml-2 group-data-[collapsible=icon]:hidden text-sm">
+                <SidebarMenuButton 
+                  onClick={toggleTheme}
+                  tooltip={{ children: 'Toggle Theme', side: 'right' }}
+                >
+                  {theme === "light" ? (
+                    <MoonIcon className="shrink-0" />
+                  ) : (
+                    <SunIcon className="shrink-0" />
+                  )}
+                  <span className="group-data-[collapsible=icon]:hidden">
                     Toggle Theme
                   </span>
-                </div>
+                </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <Link href="#">
