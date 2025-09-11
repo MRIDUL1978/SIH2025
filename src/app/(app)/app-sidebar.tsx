@@ -19,20 +19,29 @@ import {
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/lib/firebase/auth';
+import { ThemeToggle } from '@/components/theme-toggle';
 
-const studentNav = [
+type NavItem = {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+};
+
+const studentNav: NavItem[] = [
   { href: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/student/check-in', icon: QrCode, label: 'Check-In' },
 ];
 
-const facultyNav = [
+const facultyNav: NavItem[] = [
   { href: '/faculty/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/faculty/course', icon: QrCode, label: 'Courses' },
 ];
 
-const adminNav = [
+const adminNav: NavItem[] = [
   { href: '/admin/dashboard', icon: BarChart3, label: 'Analytics' },
+  { href: '/admin/users', icon: LayoutDashboard, label: 'User Management' },
 ];
 
 export function AppSidebar() {
@@ -40,7 +49,10 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const role = pathname.split('/')[1] || 'student';
 
-  let navItems, roleName, userName, avatarUrl;
+  let navItems: NavItem[] = [];
+  let roleName = '';
+  let userName = '';
+  let avatarUrl = '';
   
   const userDisplayName = user?.displayName || user?.email || "User";
   const userAvatarFallback = userDisplayName.charAt(0).toUpperCase();
@@ -49,18 +61,26 @@ export function AppSidebar() {
     case 'student':
       navItems = studentNav;
       roleName = 'Student';
+      userName = user ? userDisplayName : "Guest";
+      avatarUrl = user?.photoURL || `https://picsum.photos/seed/${user?.uid || role}/100/100`;
       break;
     case 'faculty':
       navItems = facultyNav;
       roleName = 'Faculty';
+      userName = user ? userDisplayName : "Guest";
+      avatarUrl = user?.photoURL || `https://picsum.photos/seed/${user?.uid || role}/100/100`;
       break;
     case 'admin':
       navItems = adminNav;
       roleName = 'Admin';
+      userName = user ? userDisplayName : "Guest";
+      avatarUrl = user?.photoURL || `https://picsum.photos/seed/${user?.uid || role}/100/100`;
       break;
     default:
       navItems = [];
       roleName = '';
+      userName = user ? userDisplayName : "Guest";
+      avatarUrl = user?.photoURL || `https://picsum.photos/seed/${user?.uid || role}/100/100`;
   }
   
   userName = user ? userDisplayName : "Guest";
@@ -100,6 +120,14 @@ export function AppSidebar() {
         {user && (
           <>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <div className="flex items-center justify-center p-2">
+                  <ThemeToggle />
+                  <span className="ml-2 group-data-[collapsible=icon]:hidden text-sm">
+                    Toggle Theme
+                  </span>
+                </div>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <Link href="#">
                   <SidebarMenuButton tooltip={{ children: 'Settings', side: 'right' }}>
